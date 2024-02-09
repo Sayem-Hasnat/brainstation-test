@@ -18,7 +18,6 @@ public class User {
     private String email;
     private String name;
     private int age;
-    private boolean isActive = true;
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
