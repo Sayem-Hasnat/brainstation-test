@@ -1,6 +1,7 @@
 package com.hasnat.bs23.service;
 
 import com.hasnat.bs23.dto.UserDto;
+import com.hasnat.bs23.dto.UserEventConsumerDto;
 import com.hasnat.bs23.entity.User;
 import com.hasnat.bs23.repository.UserRepository;
 import org.slf4j.Logger;
@@ -10,6 +11,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,9 +22,13 @@ import java.util.Optional;
 public class UserService {
     protected static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepo;
+    private final KafkaProducerService kafkaProducerService;
 
-    public UserService(UserRepository userRepo) {
+    private KafkaTemplate<String, UserEventConsumerDto> kafkaTemplate;
+
+    public UserService(UserRepository userRepo, KafkaProducerService kafkaProducerService) {
         this.userRepo = userRepo;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     @CacheEvict(value = "userList", allEntries = true)
@@ -32,6 +38,7 @@ public class UserService {
         user = userRepo.save(user);
         BeanUtils.copyProperties(user, dto);
 
+        kafkaProducerService.sendUserEvents("CREATED", dto);
         return dto;
     }
 
@@ -75,6 +82,8 @@ public class UserService {
         BeanUtils.copyProperties(dto, user);
         user = userRepo.save(user);
         BeanUtils.copyProperties(user, dto);
+
+        kafkaProducerService.sendUserEvents("UPDATED", dto);
         return dto;
     }
 
@@ -86,6 +95,9 @@ public class UserService {
     )
     public void delete(Long id) {
         userRepo.deleteById(id);
+
+        UserDto userDto = getUser(id);
+        kafkaProducerService.sendUserEvents("DELETED", userDto);
     }
 
 }
