@@ -6,6 +6,10 @@ import com.hasnat.bs23.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,6 +25,7 @@ public class UserService {
         this.userRepo = userRepo;
     }
 
+    @CacheEvict(value = "userList", allEntries = true)
     public UserDto save(UserDto dto) {
         User user = new User();
         BeanUtils.copyProperties(dto, user);
@@ -30,6 +35,7 @@ public class UserService {
         return dto;
     }
 
+    @Cacheable(value = "user", key = "#id", unless = "#result==null")
     public UserDto getUser(Long id) {
         log.info("Get User Data From Database");
         Optional<User> optionalUser = userRepo.findById(id);
@@ -46,6 +52,7 @@ public class UserService {
         return userRepo.existsByUsername(username);
     }
 
+    @Cacheable(value = "userList", unless = "#result==null or #result.isEmpty()")
     public List<UserDto> getAllUser() {
         log.info("Get User Data From Database");
         List<User> userList = userRepo.findAll();
@@ -58,6 +65,11 @@ public class UserService {
         return userDtoList;
     }
 
+    @Caching(
+            evict = {@CacheEvict(value = "userList", allEntries = true)},
+            put = {@CachePut(value = "user", key = "#dto.id")}
+    )
+
     public UserDto update(UserDto dto) {
         User user = new User();
         BeanUtils.copyProperties(dto, user);
@@ -66,6 +78,12 @@ public class UserService {
         return dto;
     }
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "userList", allEntries = true),
+                    @CacheEvict(value = "user", key = "#id")
+            }
+    )
     public void delete(Long id) {
         userRepo.deleteById(id);
     }
