@@ -1,7 +1,7 @@
 package com.hasnat.bs23.service;
 
+import com.hasnat.bs23.constant.ApplicationConstant;
 import com.hasnat.bs23.dto.UserDto;
-import com.hasnat.bs23.dto.UserEventConsumerDto;
 import com.hasnat.bs23.entity.User;
 import com.hasnat.bs23.repository.UserRepository;
 import org.slf4j.Logger;
@@ -11,7 +11,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -24,21 +23,19 @@ public class UserService {
     private final UserRepository userRepo;
     private final KafkaProducerService kafkaProducerService;
 
-    private KafkaTemplate<String, UserEventConsumerDto> kafkaTemplate;
-
     public UserService(UserRepository userRepo, KafkaProducerService kafkaProducerService) {
         this.userRepo = userRepo;
         this.kafkaProducerService = kafkaProducerService;
     }
 
     @CacheEvict(value = "userList", allEntries = true)
-    public UserDto save(UserDto dto) {
+    public UserDto saveUser(UserDto dto) {
         User user = new User();
         BeanUtils.copyProperties(dto, user);
         user = userRepo.save(user);
         BeanUtils.copyProperties(user, dto);
 
-        kafkaProducerService.sendUserEvents("CREATED", dto);
+        kafkaProducerService.sendUserEvents(ApplicationConstant.CREATED, dto);
         return dto;
     }
 
@@ -78,12 +75,8 @@ public class UserService {
     )
 
     public UserDto update(UserDto dto) {
-        User user = new User();
-        BeanUtils.copyProperties(dto, user);
-        user = userRepo.save(user);
-        BeanUtils.copyProperties(user, dto);
-
-        kafkaProducerService.sendUserEvents("UPDATED", dto);
+        saveUser(dto);
+        kafkaProducerService.sendUserEvents(ApplicationConstant.UPDATED, dto);
         return dto;
     }
 
@@ -95,9 +88,8 @@ public class UserService {
     )
     public void delete(Long id) {
         userRepo.deleteById(id);
-
         UserDto userDto = getUser(id);
-        kafkaProducerService.sendUserEvents("DELETED", userDto);
+        kafkaProducerService.sendUserEvents(ApplicationConstant.DELETED, userDto);
     }
 
 }

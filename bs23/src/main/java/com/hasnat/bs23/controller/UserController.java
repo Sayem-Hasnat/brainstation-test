@@ -24,7 +24,7 @@ public class UserController {
         if (userService.getUserByUsername(userDto.getUsername())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(ApplicationConstant.USERNAME_ALREADY_EXIST);
         } else {
-            return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(userDto));
+            return ResponseEntity.status(HttpStatus.CREATED).body(userService.saveUser(userDto));
         }
     }
 
