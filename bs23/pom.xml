@@ -71,6 +71,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<finalName>brain-station-microservice-test</finalName>
 	</build>
 
 </project>
